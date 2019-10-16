@@ -81,7 +81,7 @@ function summary(k = 100000, n=40)
     df = DataFrame(Space = String[], Prob = Float64[], Rent = Float64[], ROI = Float64[])
     for (i,prob) in enumerate(probs)
         rent = prob * Spaces[i][2]
-        roi = prob * Spaces[i][2] /Spaces[i][3] 
+        roi = rent /Spaces[i][3] 
         push!(df,(Spaces[i][1], prob, rent,roi * 100))
     end
     df
