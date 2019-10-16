@@ -1,5 +1,5 @@
 
-using StatsBase, LinearAlgebra, DataFrames
+using DataFrames
 
             Spaces = [
                 ("Go", 0.0, Inf),
