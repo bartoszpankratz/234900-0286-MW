@@ -175,20 +175,18 @@ dyna_Q!(agent, 10000.0, deterministic = true)
 
 print_policy(get_policy(agent),grid4x4)
 
+#using PyPlot
 
-
-using PyPlot
-
-res = []
-for i in 0:1:25
-    scores = []
-    for j in 1:10
-        agent = Agent(grid8x8, i);
-        dyna_Q!(agent, 10000.0, deterministic = true)
-        push!(scores,agent.score/agent)
-    end
-    push!(res,sum(scores)/length(scores))
-end
-plot(res, ylabel = "score")
+#res = []
+#for i in 0:1:25
+#    scores = []
+#    for j in 1:10
+#        agent = Agent(grid8x8, i);
+#        dyna_Q!(agent, 10000.0, deterministic = true)
+#        push!(scores,agent.score)
+#    end
+#    push!(res,sum(scores)/length(scores))
+#end
+#plot(res)
 
 
