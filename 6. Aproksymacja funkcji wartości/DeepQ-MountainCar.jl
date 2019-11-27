@@ -11,16 +11,14 @@ mutable struct Brain
     memory_size::Int
     memory::Array{Tuple,1}
     net::Chain
-    Loss::Function
-    opt::ADAM
+    η::Float64
 end
 
 function Brain(env; β = 0.99, η = 0.001)
     model = Chain(Dense(length(env.state), 128, relu), 
             Dense(128, 52, relu), 
             Dense(52, length(action_space(env)), identity))
-    loss(x, y) = Flux.mse(model(x), y)
-    Brain(β, 64 , 50_000, [], model, loss, ADAM(η))
+    Brain(β, 64 , 50_000, [], model, η)
 end
 
 mutable struct Agent
@@ -36,6 +34,8 @@ end
 Agent(env::AbstractEnv, ϵ = 1.0, ϵ_decay = 0.9975, ϵ_min = 0.005) = Agent(env, ϵ, ϵ_decay, ϵ_min, 
                                                                         Brain(env), -Inf, 0.0)
 
+loss(x, y) = Flux.mse(agent.brain.net(x), y)
+
 function replay!(agent::Agent)
     batch_size = min(agent.brain.batch_size, length(agent.brain.memory))
     x = zeros(Float32,length(agent.env.state), batch_size)
@@ -48,7 +48,7 @@ function replay!(agent::Agent)
         x[:, i] .= s
         y[:, i] .= Q
     end
-    Flux.train!(agent.brain.Loss, params(agent.brain.net), [(x, y)], agent.brain.opt)
+    Flux.train!(loss, params(agent.brain.net), [(x, y)], ADAM(agent.brain.η))
 end
 
 function remember!(brain::Brain, step::Tuple)
@@ -74,13 +74,11 @@ end
 function run!(agent::Agent, episodes::Int; train::Bool = true, plotting::Bool = true, summary::Bool = true)
     ep = 1.0
     success = 0.0
-    rewards = []
     while ep ≤ episodes
         plotting && (render(env); sleep(0.0001))
         if step!(agent, train) 
             reset!(agent.env)
             agent.position > 0.5 && (success += 1.0)
-            push!(rewards, agent.reward)
             if summary
                 println("episode $(Int(ep)) ends! Reward: $(agent.reward)")
                 println("ϵ: $(agent.ϵ), success rate: $(success/ep)")
@@ -92,11 +90,14 @@ function run!(agent::Agent, episodes::Int; train::Bool = true, plotting::Bool = 
             agent.ϵ = max(agent.ϵ_min, eps)
         end
     end
-    return rewards
 end
 
 agent = Agent(env);
 
-res = run!(agent,1500; plotting = false);
+res = run!(agent,1000; plotting = false);
+
+
+
+
 
 
