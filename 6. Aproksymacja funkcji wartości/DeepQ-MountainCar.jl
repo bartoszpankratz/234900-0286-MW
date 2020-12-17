@@ -1,5 +1,4 @@
-
-using ReinforcementLearningEnvironments
+using ReinforcementLearningBase, ReinforcementLearningEnvironments
 using Flux
 import StatsBase.sample
 
@@ -9,6 +8,7 @@ mutable struct Brain
     β::Float64
     batch_size::Int
     memory_size::Int
+    min_memory_size::Int
     memory::Array{Tuple,1}
     net::Chain
     η::Float64
@@ -17,8 +17,8 @@ end
 function Brain(env; β = 0.99, η = 0.001)
     model = Chain(Dense(length(env.state), 128, relu), 
             Dense(128, 52, relu), 
-            Dense(52, length(action_space(env)), identity))
-    Brain(β, 64 , 50_000, [], model, η)
+            Dense(52, length(env.action_space), identity))
+    Brain(β, 64 , 50_000, 1000, [], model, η)
 end
 
 mutable struct Agent
@@ -37,14 +37,13 @@ Agent(env::AbstractEnv, ϵ = 1.0, ϵ_decay = 0.9975, ϵ_min = 0.005) = Agent(env
 loss(x, y) = Flux.mse(agent.brain.net(x), y)
 
 function replay!(agent::Agent)
-    batch_size = min(agent.brain.batch_size, length(agent.brain.memory))
-    x = zeros(Float32,length(agent.env.state), batch_size)
-    y = zeros(Float32,length(action_space(env)), batch_size)
-    for (i,step)  in enumerate(sample(agent.brain.memory, batch_size, replace = false))
+    x = zeros(Float32,length(agent.env.state), agent.brain.batch_size)
+    y = zeros(Float32,length(agent.env.action_space), agent.brain.batch_size)
+    for (i,step)  in enumerate(sample(agent.brain.memory, agent.brain.batch_size, replace = false))
         s,a,r,s′,terminal = step
-        terminal ? (newQ  = r) : (newQ = r + agent.brain.β * maximum(agent.brain.net(s′).data))
-        Q = agent.brain.net(s).data
-        Q[a] = newQ
+        terminal ? (R  = r) : (R = r + agent.brain.β * maximum(agent.brain.net(s′)))
+        Q = agent.brain.net(s)
+        Q[a] = R
         x[:, i] .= s
         y[:, i] .= Q
     end
@@ -56,29 +55,33 @@ function remember!(brain::Brain, step::Tuple)
     push!(brain.memory, step)
 end
 
-policy(agent::Agent, state::Array{Float64,1}) = argmax(agent.brain.net(state).data)
+policy(agent::Agent, state::Array{Float64,1}) = argmax(agent.brain.net(state))
 
 function step!(agent::Agent, train::Bool)
     s = deepcopy(agent.env.state)
-    (rand() < agent.ϵ  && train) ? (a = rand(action_space(agent.env))) : (a = policy(agent, s))
-    interact!(agent.env, a)
-    obs = observe(agent.env)
-    r, s′, terminal = deepcopy(get_reward(obs)), deepcopy(get_state(obs)), deepcopy(get_terminal(obs))
+    (rand() < agent.ϵ  && train) ? (a = rand(agent.env.action_space)) : (a = policy(agent, s))
+    agent.env(a)
+    r, s′, terminal = deepcopy(get_reward(agent.env)), deepcopy(get_state(agent.env)),
+    deepcopy(get_terminal(agent.env))
     agent.position = s′[1]
     agent.reward += r
     remember!(agent.brain, (s,a,r,s′,terminal))
-    train && replay!(agent)
+    (train && length(agent.brain.memory) > agent.brain.min_memory_size) && replay!(agent)
     terminal 
 end
 
 function run!(agent::Agent, episodes::Int; train::Bool = true, plotting::Bool = true, summary::Bool = true)
+    rewards = []
+    success_rates = []
     ep = 1.0
     success = 0.0
     while ep ≤ episodes
-        plotting && (render(env); sleep(0.0001))
+        plotting && (display(env); sleep(0.0001))
         if step!(agent, train) 
             reset!(agent.env)
             agent.position > 0.5 && (success += 1.0)
+            push!(rewards, agent.reward)
+            push!(success_rates, success/ep)
             if summary
                 println("episode $(Int(ep)) ends! Reward: $(agent.reward)")
                 println("ϵ: $(agent.ϵ), success rate: $(success/ep)")
@@ -90,14 +93,23 @@ function run!(agent::Agent, episodes::Int; train::Bool = true, plotting::Bool = 
             agent.ϵ = max(agent.ϵ_min, eps)
         end
     end
+    return rewards, success_rates
 end
 
 agent = Agent(env);
 
-res = run!(agent,1000; plotting = false);
+rewards, success_rates = run!(agent,1000; plotting = false);
 
+_,_ = run!(agent,1000; train = false, plotting = false);
 
+using PyPlot
 
+plot(success_rates)
+xlabel("Time")
+ylabel("success rate")
 
+plot(rewards)
+xlabel("Time")
+ylabel("Reward")
 
 
