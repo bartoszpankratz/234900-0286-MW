@@ -1,5 +1,5 @@
 
-using Random
+using Random, PyPlot
 
 #actions coded as :left => 1, :down => 2, :right => 3, :up => 4
 actions = Dict(1 => [0,-1], 2 => [1,0], 3 => [0,1], 4 => [-1,0]);
@@ -133,22 +133,27 @@ function update!(agent)
         agent.C[state,action] += 1
         agent.Q[state,action] += (R - agent.Q[state,action])/ agent.C[state,action]
         agent.π[state] = argmax(agent.Q[state,:])   
-    end  
+    end 
+    agent.world[episode[end][1]] == 'G' ? (return 1.0) : (return 0.0)
 end
 
 function MC!(agent; maxit = 100000)
     iter = 0
+    successes = 0.0
+    success_rate = []
     while iter < maxit
-        update!(agent)
+        successes += update!(agent)
+        push!(success_rate, successes/iter)
         iter +=1
     end
+    return success_rate
 end
 
-agent = Agent(grid8x8, ϵ = 1/3);
+agent = Agent(grid4x4);
 
 
-@time MC!(agent, maxit = 700_000)
+success_rate = MC!(agent)
 
-print_policy(agent.π,agent.world)
-
-
+plot(success_rate)
+xlabel("Time")
+ylabel("success rate")
