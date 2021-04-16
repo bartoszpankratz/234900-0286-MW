@@ -1,6 +1,5 @@
-
 ENV["MPLBACKEND"]="qt4agg"
-using PyPlot
+using PyPlot;pygui(true) 
 
 function create_world(sizex = 4,sizey = 12)
     world = zeros(sizex,sizey)
@@ -169,14 +168,25 @@ function run_learning!(agent, episodes; plotting = true, burning = true, SARSA =
     step
 end
 
+
 #uruchamiamy:
 
 agent_Q = Agent();
+run_learning!(agent_Q,20,plotting = true, burning = false, SARSA = false)
 
+agent_Q = Agent();
 run_learning!(agent_Q,5000,plotting = false, SARSA = false)
+run_learning!(agent_Q,5030,plotting = true, burning = false, SARSA = false)
 
 agent_SARSA = Agent();
+run_learning!(agent_SARSA,20,plotting = true, burning = false, SARSA = true)
 
+agent_SARSA = Agent();
 run_learning!(agent_SARSA,5000,plotting = false, SARSA = true)
+run_learning!(agent_SARSA,5030,plotting = true, burning = false, SARSA = true)
 
-
+plot(agent_Q.rewards, label = "Q-learning")
+plot(agent_SARSA.rewards, label = "SARSA")
+legend()
+xlabel("time")
+ylabel("average reward")
