@@ -112,3 +112,4 @@ agent.score
 #PyPlot.plot(res)
 #ylabel("Score")
 #xlabel("Planning Steps")
+#xticks(0:8,string.(collect(0:3:25)))
