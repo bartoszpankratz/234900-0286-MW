@@ -1,5 +1,5 @@
 using ReinforcementLearningBase, ReinforcementLearningEnvironments
-using Flux
+using Flux, GR
 import StatsBase.sample, StatsBase.Weights
 
 env = MountainCarEnv();
@@ -19,7 +19,7 @@ end
 function Brain(env; β = 0.99, ηₚ = 0.00001, ηᵥ = 0.001)
     policy_net = Chain(Dense(length(env.state), 40, identity),
                 Dense(40,40,identity),
-                Dense(40,length(get_actions(env)), identity), softmax)
+                Dense(40,length(action_space(env)), identity), softmax)
     value_net = Chain(Dense(length(env.state), 128, relu), 
                     Dense(128, 52, relu), 
                     Dense(52, 1, identity))
@@ -46,13 +46,13 @@ critic_loss(x, y, ξ = 0.5) = ξ*Flux.mse(agent.brain.value_net(x), y)
 
 function replay!(agent::Agent)
     x = zeros(Float32,length(agent.env.state), agent.brain.batch_size)
-    A = zeros(Float32,length(get_actions(agent.env)), agent.brain.batch_size)
+    A = zeros(Float32,length(action_space(agent.env)), agent.brain.batch_size)
     y = zeros(Float32,1, agent.brain.batch_size)
     for (i,step)  in enumerate(sample(agent.brain.memory, agent.brain.batch_size, replace = false))
         s,a,r,s′,v,v′,terminal = step
         terminal ? (R  = r) : (R = r + agent.brain.β * v′)
         adv = R - v
-        Adv = zeros(Float32,length(get_actions(agent.env)))
+        Adv = zeros(Float32,length(action_space(agent.env)))
         Adv[a] = adv
         x[:, i] .= s
         A[:, i] .= Adv
@@ -76,10 +76,10 @@ end
 function step!(agent::Agent, train::Bool)
     s = deepcopy(agent.env.state)
     π,v = forward(agent.brain, s)
-    a = sample(1:length(get_actions(agent.env)),Weights(π))
+    a = sample(1:length(action_space(agent.env)),Weights(π))
     agent.env(a)
-    r, s′, terminal = deepcopy(get_reward(agent.env)), deepcopy(get_state(agent.env)), 
-    deepcopy(get_terminal(agent.env))
+    r, s′, terminal = deepcopy(reward(agent.env)), deepcopy(state(agent.env)), 
+    deepcopy(is_terminated(agent.env))
     _,v′ = forward(agent.brain, s′)
     agent.position = s′[1]
     agent.reward += r
@@ -95,7 +95,7 @@ function run!(agent::Agent, episodes::Int; train::Bool = true,
     ep = 1.0
     success = 0.0
     while ep ≤ episodes
-        plotting && (display(env); sleep(0.0001))
+        plotting && (GR.plot(env); sleep(0.0001))
         if step!(agent, train) 
             reset!(agent.env)
             agent.position > 0.5 && (success += 1.0)

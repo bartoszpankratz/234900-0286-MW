@@ -1,5 +1,5 @@
 using ReinforcementLearningBase, ReinforcementLearningEnvironments
-using Flux
+using Flux, GR, PyPlot
 import StatsBase.sample
 
 env = MountainCarEnv();
@@ -61,8 +61,8 @@ function step!(agent::Agent, train::Bool)
     s = deepcopy(agent.env.state)
     (rand() < agent.ϵ  && train) ? (a = rand(agent.env.action_space)) : (a = policy(agent, s))
     agent.env(a)
-    r, s′, terminal = deepcopy(get_reward(agent.env)), deepcopy(get_state(agent.env)),
-    deepcopy(get_terminal(agent.env))
+    r, s′, terminal = deepcopy(reward(agent.env)), deepcopy(state(agent.env)),
+    deepcopy(is_terminated(agent.env))
     agent.position = s′[1]
     agent.reward += r
     remember!(agent.brain, (s,a,r,s′,terminal))
@@ -76,7 +76,7 @@ function run!(agent::Agent, episodes::Int; train::Bool = true, plotting::Bool = 
     ep = 1.0
     success = 0.0
     while ep ≤ episodes
-        plotting && (display(env); sleep(0.0001))
+        plotting && (GR.plot(env); sleep(0.0001))
         if step!(agent, train) 
             reset!(agent.env)
             agent.position > 0.5 && (success += 1.0)
@@ -102,14 +102,13 @@ rewards, success_rates = run!(agent,1000; plotting = false);
 
 _,_ = run!(agent,1000; train = false, plotting = false);
 
-using PyPlot
 
-plot(success_rates)
-xlabel("Time")
-ylabel("success rate")
+PyPlot.plot(success_rates)
+PyPlot.xlabel("Time")
+PyPlot.ylabel("success rate")
 
-plot(rewards)
-xlabel("Time")
-ylabel("Reward")
+PyPlot.plot(rewards)
+PyPlot.xlabel("Time")
+PyPlot.ylabel("Reward")
 
 
