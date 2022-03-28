@@ -1,7 +1,7 @@
-using PyCall, ReinforcementLearningBase, ReinforcementLearningEnvironments
+using PyCall, ReinforcementLearning, ReinforcementLearningEnvironments
 using PyPlot
 
-env = GymEnv("FrozenLake-v0");
+env = GymEnv("FrozenLake-v1");
 
 mutable struct Agent
     env::AbstractEnv

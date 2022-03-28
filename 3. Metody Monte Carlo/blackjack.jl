@@ -1,7 +1,7 @@
-using PyCall, ReinforcementLearningBase, ReinforcementLearningEnvironments
+using PyCall, ReinforcementLearning, ReinforcementLearningEnvironments
 using PyPlot
 
-env = GymEnv("Blackjack-v0");
+env = GymEnv("Blackjack-v1");
 
 mutable struct Agent
     env::AbstractEnv
