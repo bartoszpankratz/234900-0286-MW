@@ -1,5 +1,6 @@
 ENV["MPLBACKEND"]="qt4agg"
 using PyPlot;pygui(true) 
+using Random; Random.seed!(1234)
 
 function create_world(sizex = 4,sizey = 12)
     world = zeros(sizex,sizey)
