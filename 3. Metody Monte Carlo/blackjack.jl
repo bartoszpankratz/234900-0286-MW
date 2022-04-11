@@ -34,7 +34,7 @@ function get_episode(agent; es = false, maxstep = 1000)
     while step < maxstep
         hand,dealer,ace = agent.env.state[1]
         state = (hand,dealer,ace)
-        if !haskey(agent.Q, state) || rand() < agent.ϵ 
+        if !haskey(agent.Q, state) || (rand() < agent.ϵ && es == false) 
             action = rand(1:length(agent.env.action_space)) 
         else
             action = argmax(agent.Q[state])

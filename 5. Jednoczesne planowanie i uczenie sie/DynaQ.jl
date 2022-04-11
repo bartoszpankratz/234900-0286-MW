@@ -1,7 +1,8 @@
 using ReinforcementLearningBase, GridWorlds
-using Makie, PyPlot
+using PyPlot
 
-env = GridWorlds.GridRoomsDirected();
+world = GridWorlds.GridRoomsDirectedModule.GridRoomsDirected();
+env = GridWorlds.RLBaseEnv(world)
 
 mutable struct Agent
     env::AbstractEnv
@@ -38,13 +39,17 @@ function learn!(agent, state, action, reward, new_state)
     
 end
 
-function dyna_Q!(agent, steps; burning = true, plotting = false) 
-    if plotting
-        env_node = Makie.Node(agent.env)
-        scene = GridWorlds.init_screen(env_node)
-    end
+function dyna_Q!(agent, steps; burning = true, animated = nothing) 
     step = 1.0
     episode = 0.0
+    if !isnothing(animated)
+        global str = ""
+        global str = str * "FRAME_START_DELIMITER"
+        global str = str * "step: $(step)\n"
+        global str = str * "episode: $(episode)\n"
+        global str = str * repr(MIME"text/plain"(), env)
+        global str = str * "\ntotal_reward: 0"
+    end
     while step <= steps
         if (burning && step < 0.1*steps) || rand() < agent.ϵ || !haskey(agent.Q, state(agent.env))
             action = rand(1:length(action_space(agent.env)))
@@ -60,10 +65,12 @@ function dyna_Q!(agent, steps; burning = true, plotting = false)
             (S,a),(next_S, R) = rand(agent.model)
             learn!(agent, S, a, R, next_S)
         end 
-        if plotting 
-            Makie.display(scene)
-            env_node[] = agent.env
-            sleep(1/10)
+        if !isnothing(animated) 
+            global str = str * "FRAME_START_DELIMITER"
+            global str = str * "step: $(step)\n"
+            global str = str * "episode: $(episode)\n"
+            global str = str * repr(MIME"text/plain"(), env)
+            global str = str * "\ntotal_reward: $(agent.score)"
         end
         if is_terminated(agent.env)
             eps = agent.ϵ * agent.ϵ_decay
@@ -74,27 +81,51 @@ function dyna_Q!(agent, steps; burning = true, plotting = false)
         end
         step += 1.0 
     end
+    if !isnothing(animated) 
+        write(animated * ".txt", str)
+    end
 end
+
+
+agent = Agent(env,5);
+
+dyna_Q!(agent, 100, animated = "before_learning")
+
+GridWorlds.replay(file_name = "before_learning.txt", 
+    frame_start_delimiter = "FRAME_START_DELIMITER", frame_rate = 5)
+
+dyna_Q!(agent, 1_000_000)
+
+@info "agent score: $(agent.score)"
+
+dyna_Q!(agent, 1000, burning = false, animated = "after_learning")
+
+GridWorlds.replay(file_name = "after_learning.txt", frame_start_delimiter = "FRAME_START_DELIMITER", 
+    frame_rate = 5)
+
+@info "agent 0 steps of planning (Q-learning)"
 
 agent = Agent(env,0);
 
-dyna_Q!(agent, 1_000_000)
+@time dyna_Q!(agent, 1_000_000)
 
-agent.score
+@info "agent score: $(agent.score)"
 
-dyna_Q!(agent, 200, burning = false, plotting = true)
+@info "agent 10 steps of planning"
 
 agent = Agent(env,10);
 
-dyna_Q!(agent, 1_000_000)
+@time dyna_Q!(agent, 1_000_000)
 
-agent.score
+@info "agent score: $(agent.score)"
+
+@info "agent 30 steps of planning"
 
 agent = Agent(env,30);
 
-dyna_Q!(agent, 1_000_000)
+@time dyna_Q!(agent, 1_000_000)
 
-agent.score
+@info "agent score: $(agent.score)"
 
 #this experiment is pretty slow!
 
