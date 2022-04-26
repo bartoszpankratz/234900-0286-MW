@@ -1,5 +1,5 @@
 using ReinforcementLearningBase, ReinforcementLearningEnvironments
-using GR, PyPlot; pygui(true) 
+using Plots; gr(); 
 import StatsBase.sample
 env = MountainCarEnv();
 
@@ -35,7 +35,6 @@ Agent(env, n, m, ϵ = 1.0, ϵ_decay = 0.9975,
                                                 rand(length(action_space(env)), n*n*m),
                                                 -Inf, 0.0)
 
-
 policy(agent::Agent, state::Array{Bool,1}) = argmax(agent.W * state)
 
 function step!(agent::Agent, train::Bool)
@@ -67,7 +66,7 @@ function run!(agent::Agent, episodes::Int; train::Bool = true, plotting::Bool = 
     ep = 1.0
     success = 0.0
     while ep ≤ episodes
-        plotting && (GR.plot(env); sleep(0.0001))
+        plotting && (plot(env); sleep(0.0001))
         if step!(agent, train) 
             reset!(agent.env)
             agent.position > 0.5 && (success += 1.0)
@@ -90,19 +89,21 @@ end
 
 agent = Agent(env,8,4);
 
+rewards,_ = run!(agent,10; train = false, plotting = true);
+
 rewards, success_rates = run!(agent,5_000; plotting = false);
 
-PyPlot.plot(success_rates)
-PyPlot.xlabel("Time")
-PyPlot.ylabel("success rate")
+rewards,_ = run!(agent,10; train = false, plotting = true);
+
+plot(success_rates, xlabel = "Time", ylabel = "Sucess rate", legend = false)
 
 X = range(state_space(agent.env)[1].left,state_space(agent.env)[1].right,length = 10)
 Y = range(state_space(agent.env)[2].left,state_space(agent.env)[2].right,length = 10)
 Z = [maximum(agent.W * code((x,y),agent.tillings)) for x in X, y in Y];
 
-PyPlot.plot_surface(X,Y,-Z)
-PyPlot.xlabel("position")
-PyPlot.ylabel("velocity")
-PyPlot.zlabel("cost-to-go")
+plot(X,Y,-Z, st=:surface, camera = (60,60), xlabel = "Position", ylabel = "Velocity", zlabel = "Cost-to-go")
 
-rewards,_ = run!(agent,1000; train = false, plotting = false);
+rewards,success_rates = run!(agent,1000; train = false, plotting = false, summary = false);
+plot(success_rates, xlabel = "Time", ylabel = "Sucess rate", legend = false)
+
+
