@@ -1,8 +1,10 @@
 using ReinforcementLearningBase, ReinforcementLearningEnvironments
-using Flux, GR, PyPlot
+using Flux
+using Plots; gr(); 
 import StatsBase.sample
 
 env = MountainCarEnv();
+
 
 mutable struct Brain
     β::Float64
@@ -76,7 +78,7 @@ function run!(agent::Agent, episodes::Int; train::Bool = true, plotting::Bool = 
     ep = 1.0
     success = 0.0
     while ep ≤ episodes
-        plotting && (GR.plot(env); sleep(0.0001))
+        plotting && (plot(env); sleep(0.0001))
         if step!(agent, train) 
             reset!(agent.env)
             agent.position > 0.5 && (success += 1.0)
@@ -100,15 +102,8 @@ agent = Agent(env);
 
 rewards, success_rates = run!(agent,1000; plotting = false);
 
-_,_ = run!(agent,1000; train = false, plotting = false);
+plot(success_rates, xlabel = "Time", ylabel = "Sucess rate", legend = false)
 
-
-PyPlot.plot(success_rates)
-PyPlot.xlabel("Time")
-PyPlot.ylabel("success rate")
-
-PyPlot.plot(rewards)
-PyPlot.xlabel("Time")
-PyPlot.ylabel("Reward")
+plot(rewards, xlabel = "Time", ylabel = "Reward", legend = false)
 
 
