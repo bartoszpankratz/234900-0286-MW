@@ -20,7 +20,7 @@ mutable struct Brain
 end
 
 function Brain(env, update_freq; β = 0.99, η = 0.00001)
-    model = Chain(x -> x ./ 255,
+    model = Chain(x -> x,
                     Conv((8,8), update_freq => 32, relu; stride=4),
                     Conv((4,4), 32 => 64, relu; stride=2),
                     Conv((3,3), 64 => 64, relu; stride=1),
