@@ -20,8 +20,7 @@ mutable struct Brain
 end
 
 function Brain(env, update_freq; β = 0.99, η = 0.00001)
-    model = Chain(x -> x,
-                    Conv((8,8), update_freq => 32, relu; stride=4),
+    model = Chain(Conv((8,8), update_freq => 32, relu; stride=4),
                     Conv((4,4), 32 => 64, relu; stride=2),
                     Conv((3,3), 64 => 64, relu; stride=1),
                     x -> reshape(x, :, size(x)[end]),
@@ -50,7 +49,7 @@ function replay!(agent::Agent)
     y = zeros(Float32,length(agent.env.action_space), agent.brain.batch_size)
     for (i,step)  in enumerate(sample(agent.brain.memory, agent.brain.batch_size, replace = false))
         s,a,r,s′,terminal = step
-        terminal ? (R  = r) : (R = r + agent.brain.β * maximum(agent.brain.net(s′)))
+        terminal ? (R  = r) : (R = r + agent.brain.β * maximum(agent.brain.target(s′)))
         Q = agent.brain.net(s)
         Q[a] = R
         x[:,:,:, i] .= s
