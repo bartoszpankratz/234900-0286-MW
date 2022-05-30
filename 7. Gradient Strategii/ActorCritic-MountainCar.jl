@@ -1,5 +1,6 @@
 using ReinforcementLearningBase, ReinforcementLearningEnvironments
-using Flux, GR
+using Flux
+using Plots; gr(); 
 import StatsBase.sample, StatsBase.Weights
 
 env = MountainCarEnv();
@@ -95,7 +96,7 @@ function run!(agent::Agent, episodes::Int; train::Bool = true,
     ep = 1.0
     success = 0.0
     while ep ≤ episodes
-        plotting && (GR.plot(env); sleep(0.0001))
+        plotting && (plot(env); sleep(0.0001))
         if step!(agent, train) 
             reset!(agent.env)
             agent.position > 0.5 && (success += 1.0)
@@ -114,8 +115,6 @@ function run!(agent::Agent, episodes::Int; train::Bool = true,
 end
 
 agent = Agent(env);
-
-agent.env
 
 rewards, success_rates = run!(agent,1000; train = true, plotting = false);
 

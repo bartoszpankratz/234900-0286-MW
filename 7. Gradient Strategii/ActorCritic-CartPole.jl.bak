@@ -118,8 +118,8 @@ _, _ = run!(agent,20; train = false, plotting = true);
 
 rewards, avg_rewards = run!(agent,1500; train = true, plotting = false);
 
-plot(rewards, xlabel = "Time", ylabel = "Reward per Episode", legend = false)
-plot(avg_rewards, xlabel = "Time", ylabel = "Average Reward", legend = false)
+plot(rewards, xlabel = "Time", ylabel = "Reward")
+plot(avg_rewards, xlabel = "Time", ylabel = "Reward")
 
 
 

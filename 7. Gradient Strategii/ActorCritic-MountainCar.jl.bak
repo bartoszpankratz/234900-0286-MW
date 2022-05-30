@@ -3,7 +3,7 @@ using Flux
 using Plots; gr(); 
 import StatsBase.sample, StatsBase.Weights
 
-env = CartPoleEnv();
+env = MountainCarEnv();
 
 mutable struct Brain
     β::Float64
@@ -17,30 +17,31 @@ mutable struct Brain
     ηᵥ::Float64
 end
 
-function Brain(env; β = 0.99, ηₚ = 0.001, ηᵥ = 0.005)
-    policy_net = Chain(Dense(length(env.state), 24, relu),
-                Dense(24, 24, relu),
-                Dense(24,length(action_space(env)), identity), softmax)
-    value_net = Chain(Dense(length(env.state), 24, relu),
-                Dense(24, 24, relu),
-                Dense(24, 1, identity))
-    Brain(β, 64, 50_000, 1000, [], policy_net, value_net, ηₚ, ηᵥ)
+function Brain(env; β = 0.99, ηₚ = 0.00001, ηᵥ = 0.001)
+    policy_net = Chain(Dense(length(env.state), 40, identity),
+                Dense(40,40,identity),
+                Dense(40,length(action_space(env)), identity), softmax)
+    value_net = Chain(Dense(length(env.state), 128, relu), 
+                    Dense(128, 52, relu), 
+                    Dense(52, 1, identity))
+    Brain(β, 64 , 50_000, 1000, [], policy_net, value_net, ηₚ, ηᵥ)
 end
 
 mutable struct Agent
     env::AbstractEnv
     brain::Brain
+    position::Float64
     reward::Float64
 end
 
-Agent(env::AbstractEnv) = Agent(env, Brain(env), 0.0)
+Agent(env::AbstractEnv) = Agent(env, Brain(env), -Inf, 0.0)
 
 function actor_loss(x, A, γ = 0.001) 
     p = agent.brain.policy_net(x)
     loss = sum(-log.(p .+ 1e-7) .* A)/size(A,1) 
     entropy = sum(-log.(p .+ 1e-7) .* p)/size(A,1)
     return loss - γ * entropy
-end       
+end      
 
 critic_loss(x, y, ξ = 0.5) = ξ*Flux.mse(agent.brain.value_net(x), y)
 
@@ -60,7 +61,6 @@ function replay!(agent::Agent)
     end
     Flux.train!(actor_loss, params(agent.brain.policy_net), [(x, A)], ADAM(agent.brain.ηₚ))
     Flux.train!(critic_loss, params(agent.brain.value_net), [(x, y)], ADAM(agent.brain.ηᵥ))
-    #println(actor_loss(x[:, 1], y[:, 1]))
 end
 
 function remember!(brain::Brain, step::Tuple)
@@ -80,8 +80,9 @@ function step!(agent::Agent, train::Bool)
     a = sample(1:length(action_space(agent.env)),Weights(π))
     agent.env(a)
     r, s′, terminal = deepcopy(reward(agent.env)), deepcopy(state(agent.env)), 
-        deepcopy(is_terminated(agent.env))
+    deepcopy(is_terminated(agent.env))
     _,v′ = forward(agent.brain, s′)
+    agent.position = s′[1]
     agent.reward += r
     remember!(agent.brain, (s,a,r,s′,v,v′,terminal))
     (train && length(agent.brain.memory) > agent.brain.min_memory_size) && replay!(agent)
@@ -90,36 +91,33 @@ end
 
 function run!(agent::Agent, episodes::Int; train::Bool = true,
             plotting::Bool = true, summary::Bool = true)
-    ep = 1.0
-    sum_rewards = 0.0
     rewards = []
-    avg_rewards = []
+    success_rates = []
+    ep = 1.0
+    success = 0.0
     while ep ≤ episodes
         plotting && (plot(env); sleep(0.0001))
         if step!(agent, train) 
             reset!(agent.env)
-            sum_rewards += agent.reward
+            agent.position > 0.5 && (success += 1.0)
             push!(rewards, agent.reward)
-            push!(avg_rewards, sum_rewards/ep)
+            push!(success_rates, success/ep)
             if summary
                 println("episode $(Int(ep)) ends! Reward: $(agent.reward)")
-                println("Average reward: $(sum_rewards/ep)")
+                println("success rate: $(success/ep)")
             end
             ep += 1.0
             agent.reward = 0.0
+            agent.position = -Inf
         end
     end
-    return rewards, avg_rewards
+    return rewards, success_rates
 end
 
 agent = Agent(env);
 
-_, _ = run!(agent,20; train = false, plotting = true);
+agent.env
 
-rewards, avg_rewards = run!(agent,1500; train = true, plotting = false);
-
-plot(rewards, xlabel = "Time", ylabel = "Reward per Episode", legend = false)
-plot(avg_rewards, xlabel = "Time", ylabel = "Average Reward", legend = false)
-
+rewards, success_rates = run!(agent,1000; train = true, plotting = false);
 
 
