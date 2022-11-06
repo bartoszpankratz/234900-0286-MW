@@ -134,6 +134,15 @@ end
 
 #policy evaluation
 
+
+#synchronous DP
+function evaluate!(P, v, v₁, R, T, β)
+    for s = 1:length(v)
+        v₁[s]= R[s] + β * sum(v .*  T[:,P[s],s])
+    end
+end 
+
+#in-place DP
 function evaluate!(P, v, R, T, β)
     for s = 1:length(v)
         v[s]= R[s] + β * sum(v .*  T[:,P[s],s])
@@ -151,7 +160,7 @@ function evaluate_policy(grid,P;
         iter += 1
         v = deepcopy(v₁)
         evaluate!(P, v₁, R, T, β)
-        @info v₁
+        #@info v₁
         δ = maximum(abs.(v₁ - v)) 
         δ < ϵ * (1 - β) / β && break 
     end 
