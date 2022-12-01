@@ -85,7 +85,7 @@ end
 function goInDirection(agent, state, action)
     #wybieramy nowe pole:
     state_cart = [CartesianIndices(agent.world)[state][1], CartesianIndices(agent.world)[state][2]]
-    sides = filter(x -> !(x in [action, action .* -1]), agent.actions)
+    sides = filter(x -> !(x in [action, action .* -1]), collect(values(agent.actions)))
     p = rand()
     if p <= 0.8
         new_state = state_cart .+ actions[action]

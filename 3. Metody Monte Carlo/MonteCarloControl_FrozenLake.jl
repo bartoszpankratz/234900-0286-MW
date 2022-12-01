@@ -75,7 +75,7 @@ function FrozenLakeEnv(grid::Union{Int,Symbol} = :grid4x4; ES::Bool = false)
     end
     ES == true ? position = rand(1:length(world)) : position = 1
     return FrozenLakeEnv(nothing, Dict('S' => -0.05, 'G' => 1.0, 'H' => -1.0, 'F' => -0.05),
-    Dict(1 => (0,-1), 2 => (1,0), 3 => (0,1), 4 => (-1,0)), 
+    Dict(1 => [0,-1], 2 => (1,0), 3 => (0,1), 4 => (-1,0)), 
         world, ES, position)
     
 end
@@ -97,7 +97,7 @@ function (x::FrozenLakeEnv)(action)
     direction = x.actions[action]
     cartesian_state = [CartesianIndices(x.world)[x.position][1],
                         CartesianIndices(x.world)[x.position][2]]
-    sides = filter(y -> !(y in [direction, direction .* -1]), x.actions)
+    sides = filter(y -> !(y in [direction, direction .* -1]), collect(values(x.actions)))
     p = rand()
     if p <= 0.8
         new_state = cartesian_state .+ direction
