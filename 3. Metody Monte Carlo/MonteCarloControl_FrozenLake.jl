@@ -75,7 +75,7 @@ function FrozenLakeEnv(grid::Union{Int,Symbol} = :grid4x4; ES::Bool = false)
     end
     ES == true ? position = rand(1:length(world)) : position = 1
     return FrozenLakeEnv(nothing, Dict('S' => -0.05, 'G' => 1.0, 'H' => -1.0, 'F' => -0.05),
-    Dict(1 => [0,-1], 2 => (1,0), 3 => (0,1), 4 => (-1,0)), 
+    Dict(1 => (0,-1), 2 => (1,0), 3 => (0,1), 4 => (-1,0)), 
         world, ES, position)
     
 end
