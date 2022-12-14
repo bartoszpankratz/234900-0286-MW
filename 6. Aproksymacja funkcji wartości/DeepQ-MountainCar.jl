@@ -78,7 +78,7 @@ function run!(agent::Agent, episodes::Int; train::Bool = true, plotting::Bool = 
     ep = 1.0
     success = 0.0
     while ep ≤ episodes
-        plotting && (plot(env); sleep(0.0001))
+        plotting && (plot(agent.env); sleep(0.0001))
         if step!(agent, train) 
             reset!(agent.env)
             agent.position > 0.5 && (success += 1.0)
