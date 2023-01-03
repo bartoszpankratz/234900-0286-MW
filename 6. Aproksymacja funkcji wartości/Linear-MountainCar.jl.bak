@@ -50,7 +50,6 @@ function step!(agent::Agent, train::Bool)
             R  = r
         else
             Q_new_state = agent.W * s′
-            rand() < agent.ϵ ?  R = r + agent.β * rand(Q_new_state) :
             R = r + agent.β * Q_new_state[policy(agent,s′)]
         end
         Q_hat = agent.W * s
