@@ -1,9 +1,8 @@
-
 #Modified frozen lake example, see: https://gym.openai.com/envs/FrozenLake-v0/
 
 using Random
 
-#actions coded as :left => 1, :down => 2, :right => 3, :up => 4
+# actions coded as :left => 1, :down => 2, :right => 3, :up => 4
 actions = Dict(1 => [0,-1], 2 => [1,0], 3 => [0,1], 4 => [-1,0]);
 
 #arrows are corresponding to actions
@@ -44,7 +43,7 @@ function transition_matrix(grid, actions = actions)
     i2s = CartesianIndices(grid)
     s2i = LinearIndices(grid)
     for i = 1:length(grid)
-        if !(grid[i] == 'H' || grid[i] == 'G' )
+        if !(grid[i] == 'H' || grid[i] == 'G')
             index = i2s[i]
             for j = 1:length(actions)
                 indices = Tuple(index) .+ actions[j]
@@ -98,7 +97,6 @@ function transition_matrix(grid, actions = actions)
     return T
 end
 
-
 function reward_matrix(grid, rewards = rewards)
     R = zeros(size(grid))
     for i = 1:length(grid)
@@ -108,15 +106,8 @@ function reward_matrix(grid, rewards = rewards)
 end
 
 
+random_policy(grid,actions = actions) = rand(1:length(actions),size(grid))
 
-
-function random_policy(grid,actions = actions)
-    P = rand(Int,size(grid))
-    for i = 1:length(grid)
-        P[i] = rand(1:length(actions))
-    end
-    return P
-end
 
 function print_policy(P, grid, arrows = arrows)
     Policy = rand(Char,size(grid))
@@ -131,9 +122,6 @@ function print_policy(P, grid, arrows = arrows)
     end
     return Policy
 end
-
-#policy evaluation
-
 
 #synchronous DP
 function evaluate!(P, v, v₁, R, T, β)
@@ -159,7 +147,7 @@ function evaluate_policy(grid,P;
     while true
         iter += 1
         v = deepcopy(v₁)
-        evaluate!(P, v₁, R, T, β)
+        evaluate!(P, v, v₁, R, T, β)
         #@info v₁
         δ = maximum(abs.(v₁ - v)) 
         δ < ϵ * (1 - β) / β && break 
@@ -168,6 +156,13 @@ function evaluate_policy(grid,P;
     println("Iterations: $(iter)")
     return reshape(v₁,size(grid)),  print_policy(P, grid)
 end
+
+#v, p = evaluate_policy(grid4x4, random_policy(grid4x4))
+
+#v
+
+#p
+
 
 #value iteration algorithm
 
@@ -186,8 +181,8 @@ end
 function update_values!(v₁, v, T,R,β, actions = actions)
     for s = 1:length(v₁)
         actions_vector = zeros(length(actions))
-        for i = 1:length(actions)
-            actions_vector[i] = sum(v .* T[:,i,s])
+        for a = 1:length(actions)
+            actions_vector[a] = sum(v .* T[:,a,s])
         end
         v₁[s] = R[s] +  β * maximum(actions_vector)
     end
@@ -211,9 +206,12 @@ end
 end
 
 
-vᵥ, pᵥ =  value_iteration(grid8x8);
+#vᵥ, pᵥ =  value_iteration(grid8x8);
 
-#policy iteration algorithm
+#vᵥ
+
+#pᵥ
+
 
 function evaluate!(P, v, v₁, R, T, β)
     for s = 1:length(v)
@@ -224,8 +222,8 @@ end
 function improve_policy!(v, T, P, actions = actions)
     for s = 1:length(v)
         actions_vector = zeros(length(actions))
-        for i = 1:length(actions)
-            actions_vector[i] = sum(v .* T[:,i,s])
+        for a = 1:length(actions)
+            actions_vector[a] = sum(v .* T[:,a,s])
         end
         action = argmax(actions_vector)
         action != P[s] && (P[s] = action)
@@ -241,7 +239,7 @@ function policy_iteration(grid,β = 0.999, ϵ=0.0001)
     while true
         iter += 1
         v = deepcopy(v₁)
-        evaluate!(P, v₁, R, T, β)
+        evaluate!(P, v, v₁, R, T, β)
         δ = maximum( abs.(v₁ - v)) 
         δ < ϵ * (1 - β) / β && break 
         improve_policy!(v₁, T, P)
@@ -250,4 +248,24 @@ function policy_iteration(grid,β = 0.999, ϵ=0.0001)
     return reshape(v₁,size(grid)),  print_policy(P, grid)
 end
 
- vₚ, pₚ = policy_iteration(grid8x8);
+ #vₚ, pₚ = policy_iteration(grid8x8);
+
+
+#maximum(abs.(vₚ .- vᵥ))
+
+#πs = []
+#for α in [-0.2,-0.05,0.0,0.05,.1]
+#    rewards = Dict('S' => α, 'G' => 1.0, 'H' => -1.0, 'F' => α);
+#     vₚ, pₚ = policy_iteration(grid8x8);
+#     push!(πs,pₚ)
+#end
+
+#πs[1]
+
+#πs[2]
+
+#πs[3]
+
+#πs[4]
+
+#πs[end]
