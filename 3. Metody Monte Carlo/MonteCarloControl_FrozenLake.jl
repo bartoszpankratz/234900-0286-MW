@@ -49,7 +49,6 @@ function print_policy(P, grid, arrows = arrows)
     return Policy
 end
 
-#Now, define environment:
 
 mutable struct FrozenLakeEnv <: AbstractEnv
     reward::Union{Nothing, Float64}
@@ -60,8 +59,6 @@ mutable struct FrozenLakeEnv <: AbstractEnv
     position::Int 
 end
 Main.FrozenLakeEnv
-
-#and constructor:
 
 function FrozenLakeEnv(grid::Union{Int,Symbol} = :grid4x4; ES::Bool = false) 
     if typeof(grid) == Int
@@ -91,12 +88,12 @@ function RLBase.reset!(env::FrozenLakeEnv)
     env.ES == true ? env.position = rand(state_space(env)) : env.position = 1
 end
 
-#and the most important function - movement control:
+
 function (x::FrozenLakeEnv)(action)
     @assert action in action_space(x)
     direction = x.actions[action]
-    cartesian_state = [CartesianIndices(x.world)[x.position][1],
-                        CartesianIndices(x.world)[x.position][2]]
+    cartesian_state = (CartesianIndices(x.world)[x.position][1],
+                        CartesianIndices(x.world)[x.position][2])
     sides = filter(y -> !(y in [direction, direction .* -1]), collect(values(x.actions)))
     p = rand()
     if p <= 0.8
@@ -115,16 +112,36 @@ function (x::FrozenLakeEnv)(action)
     end
 end
 
-#test if work
-env = FrozenLakeEnv(10, ES = true);
-RLBase.test_runnable!(env)
+env = FrozenLakeEnv(:grid8x8, ES = false);
+RLBase.test_runnable!(env);
 
 hook = TotalRewardPerEpisode()
 TotalRewardPerEpisode(Float64[], 0.0, true)
 
-run(RandomPolicy(action_space(env)), env, StopAfterEpisode(1_000_000), hook)
+run(RandomPolicy(action_space(env)), env, StopAfterEpisode(200_000), hook)
 
-mutable struct Agent
+mcpolicy = QBasedPolicy(
+           learner = MonteCarloLearner(
+                   approximator=TabularQApproximator(
+                       ;n_state = length(state_space(env)),
+                       n_action = length(action_space(env)),
+                        init = 0.0,
+                   ),
+            γ = 0.999
+               ),
+           explorer = EpsilonGreedyExplorer(0.1)
+       )
+
+run(mcpolicy, env, StopAfterEpisode(200_000), hook)
+
+agentMC = Agent(
+           policy = mcpolicy,
+           trajectory = VectorSARTTrajectory()
+       )
+
+run(agentMC, env, StopAfterEpisode(200_000), hook)
+
+mutable struct AgentMC
     env::FrozenLakeEnv
     ϵ::Float64
     β::Float64 #stopa dyskonta
@@ -133,8 +150,8 @@ mutable struct Agent
     π::Array{Int} #strategia agenta
 end
 
-function Agent(env; ϵ = .2, β = 0.999)
-    return Agent(env,ϵ, β,
+function AgentMC(env; ϵ = .2, β = 0.999)
+    return AgentMC(env,ϵ, β,
         zeros(length(env.world), length(action_space(env))), 
         zeros(length(env.world), length(action_space(env))),
         rand(1:length(action_space(env)),length(env.world)))
@@ -201,15 +218,17 @@ function MC!(agent; maxit = 100000)
 end
 
 #xploring starts 
-agent = Agent(FrozenLakeEnv(:grid4x4, ES = true));
-MC!(agent, maxit = 200_000)
+agent = AgentMC(FrozenLakeEnv(:grid4x4, ES = true));
+MC!(agent, maxit = 500_000)
 print_policy(agent.π, agent.env.world)
 
 #without exploring starts
-agent = Agent(FrozenLakeEnv(:grid4x4, ES = false));
+agent = AgentMC(FrozenLakeEnv(:grid4x4, ES = false));
 success_rate = MC!(agent; maxit = 500_000)
 print_policy(agent.π, agent.env.world)
 
 plot(success_rate[2:end])
 xlabel("Time")
 ylabel("success rate")
+
+
