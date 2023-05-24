@@ -15,7 +15,7 @@ end
 
 
 #balls constructor
-Ball(k) = k ∈ [1,2] ? Ball(k,(x =rand(), y = rand()),0.01, rand(1:100)) : @error "wrong type of object - it could be 1 or 2!"
+Ball(k) = k ∈ [1,2] ? Ball(k,(x =rand(), y = rand()),0.05, rand(1:100)) : @error "wrong type of object - it could be 1 or 2!"
 
 #definition of agent's eye:
 mutable struct Eye{TI<:Integer, TF<:AbstractFloat}
@@ -43,7 +43,7 @@ mutable struct ContinuousLabirynthEnv <: AbstractEnv
 end
 Main.ContinuousLabirynthEnv
 
-function ContinuousLabirynthEnv(nb; radius = 0.01)
+function ContinuousLabirynthEnv(nb; radius = 0.05)
     walls = [#bounds of the map:
         [(x = 0.0, y = 0.0),(x = 0.0, y = 1.0)],
         [(x = 0.0, y = 0.0),(x = 1.0, y = 0.0)],
@@ -171,9 +171,8 @@ function RLBase.reward(env::ContinuousLabirynthEnv)
         elseif eye.sensed_type != 0
             proximity_reward += 1 - eye.sensed_proximity/eye.max_range
         end
-        proximity_reward = proximity_reward / length(env.eyes)
     end
-    #agent like to go straight forward:
+    #agent like to go forward:
     forward_reward = 0.0
     if env.old_position == env.position 
         forward_reward += -1.0
@@ -263,7 +262,7 @@ function look_at_things_and_eat!(env)
             proximity = norm(values(env.position) .- intersect_point)
             if proximity < eye.sensed_proximity
                 if proximity < (env.radius + ball.radius)
-                    ball.kind == 2 ? (env.digestion_signal += 5.0) : (env.digestion_signal -= 6.0)
+                    ball.kind == 2 ? (env.digestion_signal = 20.0) : (env.digestion_signal = -30.0)
                     ball.age = 9999999999999 
                 else
                     eye.sensed_proximity = proximity
@@ -392,9 +391,9 @@ function run!(agent::ContinuousAgent, steps::Int; training::Bool = true,
             plotting::Bool = true, summary::Bool = true)
     step = 1.0
     while step ≤ steps
-        plotting && (plot(agent.env); sleep(0.0001))
+        plotting && (plot(agent.env); sleep(0.01))
         step!(agent, training)
-        if summary && mod(step,100) == 0
+        if summary && mod(step,5000) == 0
             @info "step $(Int(step))"
             @info "Reward: $(reward(agent.env))"
             s,a,r,s′,v,v′ = agent.brain.experience[end]
@@ -406,14 +405,18 @@ function run!(agent::ContinuousAgent, steps::Int; training::Bool = true,
 end
 
 
-agent = ContinuousAgent(50);
-
-
-v, μ,logσ = forward(agent.brain, state(agent.env))
-        a = μ + exp.(logσ) .* randn(length(logσ))
-        a = (Flux.tanh.(a) .+1 ) ./ 2
-
 agent = ContinuousAgent(50)
 run!(agent,1_000_000, plotting = false, summary = true)
 
-run!(agent,1000, plotting = true,training = false, summary = true)
+s1 = ones(Float64,27)
+s1[1] = 0.13
+    v, μ,logσ = forward(agent.brain, s1)
+    a = μ + exp.(logσ) .* randn(length(logσ))
+    a = (Flux.tanh.(a) .+1 ) ./ 2
+
+
+
+
+
+
+#run!(agent,1000, plotting = true,training = false, summary = true)
