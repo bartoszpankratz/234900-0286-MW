@@ -157,11 +157,11 @@ function evaluate_policy(grid,P;
     return reshape(v₁,size(grid)),  print_policy(P, grid)
 end
 
-#v, p = evaluate_policy(grid4x4, random_policy(grid4x4))
+v, p = evaluate_policy(grid4x4, random_policy(grid4x4))
 
-#v
+v
 
-#p
+p
 
 
 #value iteration algorithm
@@ -206,28 +206,41 @@ end
 end
 
 
-#vᵥ, pᵥ =  value_iteration(grid8x8);
+vᵥ, pᵥ =  value_iteration(grid8x8);
 
-#vᵥ
+vᵥ
 
-#pᵥ
+pᵥ
 
-
-function evaluate!(P, v, v₁, R, T, β)
+function evaluate!(π, v, v₁, R, T, β)
     for s = 1:length(v)
-        v₁[s]= R[s] + β * sum(v .*  T[:,P[s],s])
+        v₁[s]= R[s] + β * sum(v .*  T[:,π[s],s])
     end
 end 
 
+function evaluate_policy!(v₁, T, R, π;
+                        β = 0.999, ϵ=0.0001,
+                        actions = actions)
+    while true        
+        v = deepcopy(v₁)
+        evaluate!(π, v, v₁, R, T, β)
+        δ = maximum(abs.(v₁ - v)) 
+        δ < ϵ * (1 - β) / β && break 
+    end 
+end
+
+
 function improve_policy!(v, T, P, actions = actions)
+    done = true
     for s = 1:length(v)
         actions_vector = zeros(length(actions))
         for a = 1:length(actions)
             actions_vector[a] = sum(v .* T[:,a,s])
         end
         action = argmax(actions_vector)
-        action != P[s] && (P[s] = action)
+        action != P[s] && (P[s] = action; done = false)
     end
+    return done
 end
 
 function policy_iteration(grid,β = 0.999, ϵ=0.0001)
@@ -236,36 +249,45 @@ function policy_iteration(grid,β = 0.999, ϵ=0.0001)
     R = reward_matrix(grid)
     v₁ = zeros(length(grid))
     P = random_policy(grid)
-    while true
+    done = false
+    while !done 
         iter += 1
-        v = deepcopy(v₁)
-        evaluate!(P, v, v₁, R, T, β)
-        δ = maximum( abs.(v₁ - v)) 
-        δ < ϵ * (1 - β) / β && break 
-        improve_policy!(v₁, T, P)
+        done = true 
+        evaluate_policy!(v₁, T, R, P,
+                        β = β, ϵ = ϵ,
+                        actions = actions)
+        done = improve_policy!(v₁, T, P)
     end 
     println("Iterations: $(iter)")
     return reshape(v₁,size(grid)),  print_policy(P, grid)
 end
 
- #vₚ, pₚ = policy_iteration(grid8x8);
+ vₚ, pₚ = policy_iteration(grid8x8);
 
 
-#maximum(abs.(vₚ .- vᵥ))
+maximum(abs.(vₚ .- vᵥ))
 
-#πs = []
-#for α in [-0.2,-0.05,0.0,0.05,.1]
-#    rewards = Dict('S' => α, 'G' => 1.0, 'H' => -1.0, 'F' => α);
-#     vₚ, pₚ = policy_iteration(grid8x8);
-#     push!(πs,pₚ)
-#end
+println(sum(pᵥ .== pₚ) / length(pᵥ))
 
-#πs[1]
+pₚ
 
-#πs[2]
+πs = []
+for α in [-0.2,-0.05,0.0,0.05,.1]
+    rewards = Dict('S' => α, 'G' => 1.0, 'H' => -1.0, 'F' => α);
+    vₚ, pₚ = policy_iteration(grid8x8);
+    vᵥ, pᵥ = value_iteration(grid8x8);
+    println(pₚ == pᵥ)
+    push!(πs,pₚ)
+end
 
-#πs[3]
+πs[1]
 
-#πs[4]
+πs[2]
 
-#πs[end]
+πs[3]
+
+πs[4]
+
+πs[end]
+
+
