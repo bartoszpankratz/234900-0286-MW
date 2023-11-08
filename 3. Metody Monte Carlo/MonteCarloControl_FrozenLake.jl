@@ -1,4 +1,4 @@
-using ReinforcementLearning, PyPlot, Random
+using ReinforcementLearning, Plots, Random
 
 #actions coded as :left => 1, :down => 2, :right => 3, :up => 4
 #arrows are corresponding to actions
@@ -227,8 +227,4 @@ agent = AgentMC(FrozenLakeEnv(:grid4x4, ES = false));
 success_rate = MC!(agent; maxit = 500_000)
 print_policy(agent.π, agent.env.world)
 
-plot(success_rate[2:end])
-xlabel("Time")
-ylabel("success rate")
-
-
+plot(success_rate[2:end], xlabel = "Iteration", ylabel = "success rate", legend = false)
