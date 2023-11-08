@@ -161,6 +161,7 @@ function get_episode(agent, π = agent.π; maxstep = 1000)
     step = 1
     if agent.env.ES == true 
         S = rand(state_space(agent.env)) 
+		agent.env.position = S
         action = rand(action_space(agent.env))
     else
         S = 1
