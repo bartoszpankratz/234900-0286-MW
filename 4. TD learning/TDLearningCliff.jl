@@ -1,4 +1,3 @@
-ENV["MPLBACKEND"]="qt4agg"
 using PyPlot;pygui(true) 
 using Random; Random.seed!(1234)
 using ReinforcementLearning
