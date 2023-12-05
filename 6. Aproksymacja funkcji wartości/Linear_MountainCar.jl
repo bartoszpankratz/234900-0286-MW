@@ -16,6 +16,7 @@ code(s,t::Array{Tuple{Float64,Float64},2}) = [between(s[1],t[i,j][1],t[i+1,j][1]
 code(s,tillings::Array{Array{Tuple{Float64,Float64},2},1}) = 
                 vcat([code(s,t) for t in tillings]...)
 
+
 mutable struct Agent
     env::AbstractEnv
     ϵ::Float64
@@ -87,16 +88,14 @@ function run!(agent::Agent, episodes::Int; train::Bool = true, plotting::Bool = 
     return rewards, success_rates
 end
 
-
 agent = Agent(env,8,4);
 
-rewards,_ = run!(agent,10; train = false, plotting = true);
+#rewards,_ = run!(agent,10; train = false, plotting = true);
 
 rewards, success_rates = run!(agent,5_000; plotting = false);
+#rewards,_ = run!(agent,10; train = false, plotting = true);
 
-rewards,_ = run!(agent,10; train = false, plotting = true);
-
-plot(success_rates, xlabel = "Time", ylabel = "Sucess rate", legend = false)
+plot(success_rates, xlabel = "Time", ylabel = "Success rate", legend = false)
 
 X = range(state_space(agent.env)[1].left,state_space(agent.env)[1].right,length = 10)
 Y = range(state_space(agent.env)[2].left,state_space(agent.env)[2].right,length = 10)
@@ -106,5 +105,3 @@ plot(X,Y,-Z, st=:surface, camera = (60,60), xlabel = "Position", ylabel = "Veloc
 
 rewards,success_rates = run!(agent,1000; train = false, plotting = false, summary = false);
 plot(success_rates, xlabel = "Time", ylabel = "Sucess rate", legend = false)
-
-

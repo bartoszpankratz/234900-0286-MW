@@ -1,10 +1,10 @@
 using ReinforcementLearningBase, ReinforcementLearningEnvironments
 using Flux
+using Flux: params
 using Plots; gr(); 
 import StatsBase.sample
 
 env = MountainCarEnv();
-
 
 mutable struct Brain
     β::Float64
@@ -23,6 +23,8 @@ function Brain(env; β = 0.99, η = 0.001)
     Brain(β, 64 , 50_000, 1000, [], model, η)
 end
 
+loss(x, y) = Flux.mse(agent.brain.net(x), y)
+
 mutable struct Agent
     env::AbstractEnv
     ϵ::Float64
@@ -35,8 +37,6 @@ end
 
 Agent(env::AbstractEnv, ϵ = 1.0, ϵ_decay = 0.9975, ϵ_min = 0.005) = Agent(env, ϵ, ϵ_decay, ϵ_min, 
                                                                         Brain(env), -Inf, 0.0)
-
-loss(x, y) = Flux.mse(agent.brain.net(x), y)
 
 function replay!(agent::Agent)
     x = zeros(Float32,length(agent.env.state), agent.brain.batch_size)
@@ -100,10 +100,20 @@ end
 
 agent = Agent(env);
 
+#rewards,_ = run!(agent,10; train = false, plotting = true);
+
 rewards, success_rates = run!(agent,1000; plotting = false);
+#rewards,_ = run!(agent,10; train = false, plotting = true);
 
 plot(success_rates, xlabel = "Time", ylabel = "Sucess rate", legend = false)
 
 plot(rewards, xlabel = "Time", ylabel = "Reward", legend = false)
 
+X = range(state_space(agent.env)[1].left,state_space(agent.env)[1].right,length = 10)
+Y = range(state_space(agent.env)[2].left,state_space(agent.env)[2].right,length = 10)
+Z = [maximum((agent.brain.net([x,y]))) for x in X, y in Y];
 
+plot(X,Y,-Z, st=:surface, camera = (60,60), xlabel = "Position", ylabel = "Velocity", zlabel = "Cost-to-go")
+
+rewards,success_rates = run!(agent,1000; train = false, plotting = false, summary = false);
+plot(success_rates, xlabel = "Time", ylabel = "Sucess rate", legend = false)
